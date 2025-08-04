@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中地理题综合练习</title>
+    <script src="https://cdn.tailwindcss.com/3.3.3"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+<body class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 class="text-2xl font-bold mb-8 text-center text-blue-600">初中地理题综合练习</h1>
+
+        <div id="question-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div id="question-content"></div>
+            <div id="explanation-container" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                <div id="explanation-content"></div>
+            </div>
+        </div>
+
+        <div class="flex justify-between mb-4">
+            <button id="submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+                提交答案
+            </button>
+            <button id="next-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors" disabled>
+                下一题
+            </button>
+        </div>
+
+        <div class="text-center">
+            <button id="view-wrong-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
+                <i class="fas fa-book-open mr-2"></i>查看记错本
+            </button>
+        </div>
+
+        <!-- 记错本模态框 -->
+        <div id="wrong-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-xl shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-yellow-700">我的记错本</h3>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+                <div id="wrong-questions-list"></div>
+                <div class="mt-4 text-center">
+                    <button id="clear-wrong-btn" class="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-4 rounded-lg transition-colors mr-2">
+                        清空记错本
+                    </button>
+                    <button id="close-modal-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-1 px-4 rounded-lg transition-colors">
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./questions.js"></script>
+    <script>
+        // 初始化变量
+        window.currentQuestionIndex = 0;
+        window.selectedOption = null;
+        window.isSubmitted = false;
+
+        // 获取DOM元素
+        window.questionContent = document.getElementById('question-content');
+        window.explanationContainer = document.getElementById('explanation-container');
+        window.explanationContent = document.getElementById('explanation-content');
+        window.submitBtn = document.getElementById('submit-btn');
+        window.nextBtn = document.getElementById('next-btn');
+
+        // 从questions.js中继承renderQuestion和loadQuestion函数
+
+        // 提交答案
+        window.submitBtn.addEventListener('click', function() {
+            if (!window.selectedOption) {
+                // 不使用alert，而是在控制台记录或页面上显示提示
+                console.log('请选择一个选项');
+                return;
+            }
+
+            window.isSubmitted = true;
+            window.submitBtn.disabled = true;
+            window.nextBtn.disabled = false;
+
+            const question = window.questions[window.currentQuestionIndex];
+            const isCorrect = window.selectedOption === question.answer;
+
+            // 显示解析
+            window.explanationContainer.classList.remove('hidden');
+            window.explanationContent.innerHTML = `
+                <h4 class="font-semibold mb-2">答案解析</h4>
+                <p>${question.explanation}</p>
+                <p>${isCorrect ? '正确！' : '错误！正确答案是：' + question.answer}</p>
+            `;
+
+            // 标记正确/错误
+            document.querySelectorAll('.option-item').forEach(item => {
+                const option = item.getAttribute('data-option');
+                if (option === question.answer) {
+                    item.classList.add('bg-green-100', 'border-green-500');
+                } else if (option === window.selectedOption) {
+                    item.classList.add('bg-red-100', 'border-red-500');
+                }
+            });
+
+            // 如果回答错误，添加到记错本
+            if (!isCorrect) {
+                // 获取已有记错本数据
+                let wrongQuestions = JSON.parse(localStorage.getItem('wrongQuestions') || '[]');
+                // 检查题目是否已存在
+                const isAlreadyAdded = wrongQuestions.some(q => q.id === question.id);
+                if (!isAlreadyAdded) {
+                    wrongQuestions.push(question);
+                    localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestions));
+                    console.log('题目已添加到记错本:', question.id);
+                }
+            }
+        });
+
+        // 下一题（随机）
+        window.nextBtn.addEventListener('click', function() {
+            // 生成随机索引，确保与当前题目不同
+            let newIndex;
+            do {
+                newIndex = Math.floor(Math.random() * window.questions.length);
+            } while (newIndex === window.currentQuestionIndex);
+            
+            window.currentQuestionIndex = newIndex;
+            window.loadQuestion(window.currentQuestionIndex);
+        });
+
+        // 初始化记错本相关元素
+        window.viewWrongBtn = document.getElementById('view-wrong-btn');
+        window.wrongModal = document.getElementById('wrong-modal');
+        window.closeModal = document.getElementById('close-modal');
+        window.closeModalBtn = document.getElementById('close-modal-btn');
+        window.clearWrongBtn = document.getElementById('clear-wrong-btn');
+        window.wrongQuestionsList = document.getElementById('wrong-questions-list');
+
+        // 显示记错本
+        window.viewWrongBtn.addEventListener('click', function() {
+            window.wrongModal.classList.remove('hidden');
+            displayWrongQuestions();
+        });
+
+        // 关闭模态框
+        window.closeModal.addEventListener('click', function() {
+            window.wrongModal.classList.add('hidden');
+        });
+
+        window.closeModalBtn.addEventListener('click', function() {
+            window.wrongModal.classList.add('hidden');
+        });
+
+        // 点击模态框外部关闭
+        window.wrongModal.addEventListener('click', function(e) {
+            if (e.target === window.wrongModal) {
+                window.wrongModal.classList.add('hidden');
+            }
+        });
+
+        // 清空记错本
+        window.clearWrongBtn.addEventListener('click', function() {
+            if (confirm('确定要清空记错本吗？')) {
+                localStorage.removeItem('wrongQuestions');
+                displayWrongQuestions();
+            }
+        });
+
+        // 显示记错本内容
+        function displayWrongQuestions() {
+            const wrongQuestions = JSON.parse(localStorage.getItem('wrongQuestions') || '[]');
+            if (wrongQuestions.length === 0) {
+                window.wrongQuestionsList.innerHTML = '<p class="text-center text-gray-500">记错本为空</p>';
+                return;
+            }
+
+            let html = '';
+            wrongQuestions.forEach((question, index) => {
+                html += `
+                <div class="mb-6 p-4 border border-gray-200 rounded-lg shadow-sm">
+                    <h4 class="font-semibold mb-2">第${question.id}题: ${question.question}</h4>
+                    <div class="mb-3">
+                        ${question.options.map((option, optIndex) => {
+                            const optionLetter = String.fromCharCode(65 + optIndex);
+                            const isCorrect = optionLetter === question.answer;
+                            return `
+                            <div class="flex items-center mb-1 ${isCorrect ? 'text-green-600' : ''}">
+                                <span class="w-6 inline-block font-medium">${optionLetter}.</span>
+                                <span>${option}</span>
+                                ${isCorrect ? '<span class="ml-2 text-sm font-medium">(正确答案)</span>' : ''}
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="text-sm text-yellow-800"><strong>解析:</strong> ${question.explanation}</p>
+                    </div>
+                </div>
+                `;
+            });
+
+            window.wrongQuestionsList.innerHTML = html;
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，初始化题库');
+            // 确保questions.js中的initQuestions函数已加载
+            if (typeof window.initQuestions === 'function') {
+                window.initQuestions();
+            } else {
+                // 如果initQuestions未定义，直接加载第一题
+                window.loadQuestion(0);
+            }
+        });
+    </script>
+</body>
+</html>

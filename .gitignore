@@ -1,0 +1,27 @@
+# 忽略临时文件
+*.tmp
+*.temp
+*~
+
+# 忽略编辑器配置文件
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 忽略系统文件
+.DS_Store
+Thumbs.db
+
+# 忽略依赖目录
+node_modules/
+
+# 忽略构建输出
+dist/
+build/
+
+# 忽略日志文件
+*.log
